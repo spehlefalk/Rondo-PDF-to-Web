@@ -3,8 +3,12 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": ["selenium"],
-    "include_files": ["chromedriver.exe"]  # Include your chromedriver executable
+    "packages": ["selenium"],# Include your chromedriver executable
+     "include_files": [
+        "chromedriver.exe",  # Include your chromedriver executable
+        "webcontrole.py",  # Include your webcontrole.py file
+         ("Profile 1","chrome_user_data") # Include the folder, adjust paths as needed
+    ]
 }
 
 # Base for the executable
