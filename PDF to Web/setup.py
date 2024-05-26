@@ -15,6 +15,8 @@ build_exe_options = {
 base = None
 if sys.platform == "win32":
     base = "Win32GUI"
+elif sys.platform == "darwin":
+    base = None  # macOS applications typically do not need a base specification
 
 # Define the executables for Windows and Mac
 executables = [
