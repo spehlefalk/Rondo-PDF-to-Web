@@ -1,13 +1,13 @@
 import sys
 from cx_Freeze import setup, Executable
 
-# Dependencies are automatically detected, but it might need fine tuning.
+# Include additional files and folders
 build_exe_options = {
-    "packages": ["selenium"],# Include your chromedriver executable
-     "include_files": [
-        "chromedriver.exe",  # Include your chromedriver executable
-        "webcontrole.py",  # Include your webcontrole.py file
-         ("Profile 1","chrome_user_data") # Include the folder, adjust paths as needed
+    "packages": ["os", "re", "sqlite3", "pdfplumber", "pandas", "tkinter", "selenium"],
+    "include_files": [
+        "Profile 1",
+        "chrome_user_data",
+        "__pycache__"
     ]
 }
 
@@ -16,10 +16,16 @@ base = None
 if sys.platform == "win32":
     base = "Win32GUI"
 
+# Define the executables for Windows and Mac
+executables = [
+    Executable("main.py", base=base, icon="appicon.ico")
+]
+
+# Setup configuration
 setup(
-    name = "PDF to Web",
-    version = "1.0",
-    description = "",
-    options = {"build_exe": build_exe_options},
-    executables=[Executable("main.py", base=base, icon="9637c5ff-cdf0-44d4-ad44-f1c8cc8b54a8 (1).ico")]
+    name="PDF to Web",
+    version="2.0",
+    description="Automate PDF to Web tasks",
+    options={"build_exe": build_exe_options},
+    executables=executables
 )
