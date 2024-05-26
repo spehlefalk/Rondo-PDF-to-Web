@@ -206,6 +206,13 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
     )
     adress_field.send_keys(data_array[1])
 
+    sleep(1)  # Adjust sleep time if necessary
+    # Locate the first autocomplete suggestion
+    first_suggestion = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))  # Update with the correct selector
+    )
+    first_suggestion.click()
+
     telephone_field = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.NAME, 'telephone'))
     )
@@ -225,6 +232,12 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
         EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps Bauvorhaben"]'))
     )
     lieferadresse_field.send_keys(data_array[6])
+    sleep(1)  # Adjust sleep time if necessary
+    # Locate the first autocomplete suggestion
+    first_suggestion = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))  # Update with the correct selector
+    )
+    first_suggestion.click()
 
     auftragsNr_field = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Auftrags-Nr."]'))
@@ -242,17 +255,15 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
     )
     textarea_field.send_keys(textarea_data)
 
+    # Wait for the submit button to be clickable and click it
+    button = WebDriverWait(driver, 20).until(
+       EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]'))
+    )
+    button.click()
+
     # Wait for a few seconds to ensure the form submission is processed
     sleep(5)
-
-    # Wait for the submit button to be clickable and click it
-    #button = WebDriverWait(driver, 20).until(
-    #   EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]//span[contains(text(), "Auftrag erstellen")]'))
-    #)
-    #button.click()
-
-    # Wait for a few seconds to ensure the form submission is processed
-    #sleep(5)
+    driver.quit()
 
 root = tk.Tk()
 root.withdraw()
