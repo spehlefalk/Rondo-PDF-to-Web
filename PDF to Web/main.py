@@ -1,11 +1,13 @@
 import os
 import re
+import json
 import sqlite3
 import pdfplumber
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 from selenium import webdriver
+import sys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -14,13 +16,47 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from time import sleep
+from tkinter import messagebox
 
+# Function to read JSON configuration
+def read_json(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data
+    except FileNotFoundError:
+        print(f"Error: The file {file_path} was not found.")
+        root = tk.Tk()
+        root.withdraw()  # Versteckt das Hauptfenster
+        messagebox.showerror("Fehler", "Einstellungen nicht vergeben")
+        root.update()  # Stellt sicher, dass das Dialogfenster angezeigt wird
+        sleep(3)  # Wartet 3 Sekunden
+        sys.exit()
+        return None
+    except json.JSONDecodeError:
+        print(f"Error: The file {file_path} is not a valid JSON.")
+        return None
+
+
+      # Beendet das Skript
+# Path to the JSON file
+json_file_path = 'config.json'
+
+# Read the JSON file
+config = read_json(json_file_path)
+if config:
+    email_loggin = config.get('email')
+    pw_loggin = config.get('password')
+    default_pdf_directory = config.get('Pfad')  # Default path if not set in config
+
+# Function to clean text extracted from PDF
 def clean_text(text):
     cleaned_text = text.replace("(cid:13)", "").replace("(cid:10)", "")
     cleaned_text = re.sub(r',,{2,}', '', cleaned_text)
     cleaned_text = re.sub(r',+', ',', cleaned_text)
     return cleaned_text
 
+# Function to convert PDF to text
 def convert_pdf_to_txt(pdf_path, txt_path):
     try:
         with pdfplumber.open(pdf_path) as pdf:
@@ -37,6 +73,7 @@ def convert_pdf_to_txt(pdf_path, txt_path):
         print("Error:", str(e))
         return None
 
+# Function to convert text to CSV
 def convert_txt_to_csv(txt_path, csv_path):
     try:
         with open(txt_path, 'r', encoding='utf-8') as file:
@@ -53,6 +90,7 @@ def convert_txt_to_csv(txt_path, csv_path):
         print("Error:", str(e))
         return None
 
+# Function to extract specific aspects from dataframe and save to SQLite database
 def extract_and_save_aspects(df, conn):
     fields_to_extract = ['Name', 'Adresse', 'Telefon', 'Mobil', 'E-Mail', 'Auftrags Nr.', 'Lieferadressee']
     extracted_data = df[df['Field1'].isin(fields_to_extract)]
@@ -74,6 +112,7 @@ def extract_and_save_aspects(df, conn):
     conn.commit()
     return field_values
 
+# Function to process article data and save to SQLite database
 def process_article_data(txt_path, conn):
     anzahl = []
     artikelnr = []
@@ -104,8 +143,9 @@ def process_article_data(txt_path, conn):
     articles_cleaned_content = articles_df.to_string(index=False)
     return article_numbers_string, articles_cleaned_content
 
+# Function to open PDF file and process it
 def open_pdf():
-    file_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+    file_path = filedialog.askopenfilename(initialdir=default_pdf_directory, filetypes=[("PDF files", "*.pdf")])
     if file_path:
         base_name = os.path.basename(file_path)
         file_name, _ = os.path.splitext(base_name)
@@ -152,17 +192,12 @@ def open_pdf():
                 os.remove(save_csv_path)
                 return article_numbers_string, field_values, articles_cleaned_content
 
-def webcontrole(data_array, auftragsNr_stg, textarea_data):
-    # Get the current directory path
+# Function to control the web form automation
+def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Specify the relative path to your Chrome user data directory
     user_data_dir = os.path.join(current_dir, 'chrome_user_data')
-    
-    # Specify the profile you want to use
     profile_dir = 'Profile 1'
-    
-    # Set up Chrome options
+
     options = Options()
     options.add_argument(f'user-data-dir={user_data_dir}')
     options.add_argument(f'--profile-directory={profile_dir}')
@@ -170,32 +205,23 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
     
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-
-    #chromedriver_path = os.path.join(current_dir, 'chromedriver.exe')  # Update this path
-    #service = Service(chromedriver_path)
-    #driver = webdriver.Chrome(service=service, options=options)
     
-    # Navigate to the target URL
     driver.get('https://app.artesa.de/office/assignment/create')
     
-    # Pause to allow the page to load
     sleep(1)
     try:
-        # Attempt to log in if login fields are present
-        loggin_email_field = WebDriverWait(driver, 2).until(
+        loggin_email_field = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.NAME, "email"))
         )
-        loggin_password_field = WebDriverWait(driver, 2).until(
+        loggin_password_field = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.NAME, "password"))
         )
-        loggin_email_field.send_keys("stephan.schneider@rondolino.de")
-        loggin_password_field.send_keys("SS!rondo924p")
+        loggin_email_field.send_keys(email)
+        loggin_password_field.send_keys(pw)
         loggin_password_field.send_keys(Keys.RETURN)
     except:
-        # Print a message if login fields are not found
         print("Login fields not found, skipping login step.")
     
-    # Fill in the form fields with data from the provided array
     name_field = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.NAME, 'name'))
     )
@@ -205,11 +231,9 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
         EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps"]'))
     )
     adress_field.send_keys(data_array[1])
-
-    sleep(1)  # Adjust sleep time if necessary
-    # Locate the first autocomplete suggestion
+    sleep(1)
     first_suggestion = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))  # Update with the correct selector
+        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
     )
     first_suggestion.click()
 
@@ -232,10 +256,9 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
         EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps Bauvorhaben"]'))
     )
     lieferadresse_field.send_keys(data_array[6])
-    sleep(1)  # Adjust sleep time if necessary
-    # Locate the first autocomplete suggestion
+    sleep(1)
     first_suggestion = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))  # Update with the correct selector
+        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
     )
     first_suggestion.click()
 
@@ -249,19 +272,16 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data):
     )
     auftragsbez_field.send_keys(auftragsNr_stg)
 
-    # Wait for the textarea field to be visible and fill it
     textarea_field = WebDriverWait(driver, 20).until(
         EC.visibility_of_element_located((By.CSS_SELECTOR, 'textarea[placeholder="Anmerkungen"]'))
     )
     textarea_field.send_keys(textarea_data)
 
-    # Wait for the submit button to be clickable and click it
     button = WebDriverWait(driver, 20).until(
        EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]'))
     )
     button.click()
 
-    # Wait for a few seconds to ensure the form submission is processed
     sleep(5)
     driver.quit()
 
@@ -269,7 +289,7 @@ root = tk.Tk()
 root.withdraw()
 article_numbers_string, field_values, articles_cleaned_content = open_pdf()
 words = article_numbers_string.split(',')
-cleaned_words = [word for word in words if word]  # Remove empty strings
+cleaned_words = [word for word in words if word]
 article_numbers_string = ','.join(cleaned_words)
 print("Article Numbers:", article_numbers_string)
 print("Field Values:", field_values)
@@ -279,4 +299,4 @@ data_array = field_values
 auftragsNr_stg = field_values[0] + ": " + article_numbers_string 
 textarea_data = articles_cleaned_content
 
-webcontrole(data_array,auftragsNr_stg,textarea_data)
+webcontrole(data_array, auftragsNr_stg, textarea_data, email_loggin, pw_loggin)
