@@ -17,7 +17,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from time import sleep
-
 # Function to read JSON configuration
 def read_json(file_path):
     try:
@@ -47,7 +46,9 @@ config = read_json(json_file_path)
 if config:
     email_loggin = config.get('email')
     pw_loggin = config.get('password')
-    default_pdf_directory = config.get('Pfad')  # Default path if not set in config
+    default_pdf_directory = config.get('Pfad')  
+    auto_save = config.get('autosave')
+
 
 # Function to clean text extracted from PDF
 def clean_text(text):
@@ -276,14 +277,15 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
         EC.visibility_of_element_located((By.CSS_SELECTOR, 'textarea[placeholder="Anmerkungen"]'))
     )
     textarea_field.send_keys(textarea_data)
-
-    button = WebDriverWait(driver, 20).until(
+    print(auto_save)
+    if auto_save:
+        button = WebDriverWait(driver, 20).until(
        EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]'))
-    )
-    button.click()
+        )
+        button.click()
 
-    sleep(5)
-    driver.quit()
+        sleep(5)
+        driver.quit()
 
 root = tk.Tk()
 root.withdraw()
