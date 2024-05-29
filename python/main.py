@@ -8,6 +8,7 @@ import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter import simpledialog
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -16,8 +17,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-from time import sleep
-# Function to read JSON configuration
+from time import sleep 
+
 def read_json(file_path):
     try:
         with open(file_path, 'r') as f:
@@ -36,8 +37,6 @@ def read_json(file_path):
         print(f"Error: The file {file_path} is not a valid JSON.")
         return None
 
-
-      # Beendet das Skript
 # Path to the JSON file
 json_file_path = 'config.json'
 
@@ -48,7 +47,7 @@ if config:
     pw_loggin = config.get('password')
     default_pdf_directory = config.get('Pfad')  
     auto_save = config.get('autosave')
-
+    notes_state = config.get('notes')
 
 # Function to clean text extracted from PDF
 def clean_text(text):
@@ -194,102 +193,167 @@ def open_pdf():
                 return article_numbers_string, field_values, articles_cleaned_content
 
 # Function to control the web form automation
+def get_new_address(old_address):
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    new_address = simpledialog.askstring("Input", "Enter a new address:", initialvalue=old_address)
+    root.destroy()
+    return new_address
+
+def notes():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    note_new = simpledialog.askstring("Input", "Anmerkung/Link hinzufügen",)
+    root.destroy()
+    return note_new
+
 def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     user_data_dir = os.path.join(current_dir, 'chrome_user_data')
     profile_dir = 'Profile 1'
 
-    options = Options()
-    options.add_argument(f'user-data-dir={user_data_dir}')
-    options.add_argument(f'--profile-directory={profile_dir}')
-    options.add_experimental_option("detach", True)
-    
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    
-    driver.get('https://app.artesa.de/office/assignment/create')
-    
-    sleep(1)
     try:
-        loggin_email_field = WebDriverWait(driver, 5).until(
-            EC.element_to_be_clickable((By.NAME, "email"))
+        options = Options()
+        options.add_argument(f'user-data-dir={user_data_dir}')
+        options.add_argument(f'--profile-directory={profile_dir}')
+        options.add_experimental_option("detach", True)
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        
+        driver.get('https://app.artesa.de/office/assignment/create')
+        
+        sleep(1)
+        try:
+            loggin_email_field = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.NAME, "email"))
+            )
+            loggin_password_field = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.NAME, "password"))
+            )
+            loggin_email_field.send_keys(email)
+            loggin_password_field.send_keys(pw)
+            loggin_password_field.send_keys(Keys.RETURN)
+        except:
+            print("Login fields not found, skipping login step.")
+        
+        name_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.NAME, 'name'))
         )
-        loggin_password_field = WebDriverWait(driver, 3).until(
-            EC.element_to_be_clickable((By.NAME, "password"))
+        name_field.send_keys(data_array[0])
+        try:
+            adress_field = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps"]'))
+            )
+            adress_field.send_keys(data_array[1])
+            sleep(1)
+            first_suggestion = WebDriverWait(driver, 2).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
+            )
+            first_suggestion.click()
+        except Exception as e:
+            print("Addres ERROR",)
+            # Open a tkinter dialog to get a new address, pre-filled with the old address
+            new_address = get_new_address(data_array[1])
+            if new_address:
+                data_array[1] = new_address
+                print("New address assigned to data_array[1]:", data_array[1])
+                adress_field.clear()
+                adress_field = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps"]'))
+                )
+                adress_field.send_keys(data_array[1])
+                sleep(1)
+                first_suggestion = WebDriverWait(driver, 2).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
+                )
+                first_suggestion.click()
+        telephone_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.NAME, 'telephone'))
         )
-        loggin_email_field.send_keys(email)
-        loggin_password_field.send_keys(pw)
-        loggin_password_field.send_keys(Keys.RETURN)
+        telephone_field.send_keys(data_array[2])
+
+        mobile_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.NAME, 'mobile'))
+        )
+        mobile_field.send_keys(data_array[3])
+
+        email_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.NAME, 'email'))
+        )
+        email_field.send_keys(data_array[4])
+        try:
+            lieferadresse_field = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps Bauvorhaben"]'))
+            )
+            lieferadresse_field.send_keys(data_array[6])
+            sleep(1)
+            first_suggestion = WebDriverWait(driver,2).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
+            )
+            first_suggestion.click()
+        except Exception as e:
+            print("Addres ERROR")
+            # Open a tkinter dialog to get a new address, pre-filled with the old address
+            new_address = get_new_address(data_array[6])
+            if new_address:
+                data_array[6] = new_address
+                print("New address assigned to data_array[1]:", data_array[6])
+                lieferadresse_field.clear()
+                lieferadresse_field = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps Bauvorhaben"]'))
+                )
+                lieferadresse_field.send_keys(data_array[6])
+                sleep(1)
+                first_suggestion = WebDriverWait(driver,2).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
+                )
+                first_suggestion.click()
+        auftragsNr_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Auftrags-Nr."]'))
+        )
+        auftragsNr_field.send_keys(data_array[5])
+
+        auftragsbez_field = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Auftragsbez."]'))
+        )
+        auftragsbez_field.send_keys(auftragsNr_stg)
+
+        textarea_field = WebDriverWait(driver, 20).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, 'textarea[placeholder="Anmerkungen"]'))
+        )
+        textarea_field.send_keys(textarea_data)
+        print(auto_save)
+        if auto_save:
+            button = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]'))
+            )
+            button.click()
+
+            sleep(5)
+            driver.quit()
     except:
-        print("Login fields not found, skipping login step.")
-    
-    name_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.NAME, 'name'))
-    )
-    name_field.send_keys(data_array[0])
-
-    adress_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps"]'))
-    )
-    adress_field.send_keys(data_array[1])
-    sleep(1)
-    first_suggestion = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
-    )
-    first_suggestion.click()
-
-    telephone_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.NAME, 'telephone'))
-    )
-    telephone_field.send_keys(data_array[2])
-
-    mobile_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.NAME, 'mobile'))
-    )
-    mobile_field.send_keys(data_array[3])
-
-    email_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.NAME, 'email'))
-    )
-    email_field.send_keys(data_array[4])
-
-    lieferadresse_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Google Maps Bauvorhaben"]'))
-    )
-    lieferadresse_field.send_keys(data_array[6])
-    sleep(1)
-    first_suggestion = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, '.pac-item'))
-    )
-    first_suggestion.click()
-
-    auftragsNr_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Auftrags-Nr."]'))
-    )
-    auftragsNr_field.send_keys(data_array[5])
-
-    auftragsbez_field = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Auftragsbez."]'))
-    )
-    auftragsbez_field.send_keys(auftragsNr_stg)
-
-    textarea_field = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, 'textarea[placeholder="Anmerkungen"]'))
-    )
-    textarea_field.send_keys(textarea_data)
-    print(auto_save)
-    if auto_save:
-        button = WebDriverWait(driver, 20).until(
-       EC.element_to_be_clickable((By.XPATH, '//button[@class="el-button el-button--primary el-button--default"]'))
-        )
-        button.click()
-
-        sleep(5)
-        driver.quit()
+        # Create a root window (it will be hidden)
+        root = tk.Tk()
+        root.withdraw()  # Hide the root window
+        
+        # Display the error message
+        messagebox.showerror("Error", "Browser Error \n(mabye Close old browser applications)")
+        
+        # Destroy the root window after the messagebox is closed
+        root.destroy()
 
 root = tk.Tk()
 root.withdraw()
 article_numbers_string, field_values, articles_cleaned_content = open_pdf()
+print(notes)
+if notes_state: 
+    notes_str = notes()
+    if notes_str is not None:
+        articles_cleaned_content = articles_cleaned_content + "\n Notize: " + notes_str
+
 words = article_numbers_string.split(',')
 cleaned_words = [word for word in words if word]
 article_numbers_string = ','.join(cleaned_words)

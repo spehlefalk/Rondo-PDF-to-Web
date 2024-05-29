@@ -11,6 +11,7 @@ def load_json():
             password_entry.insert(0, data.get("password", ""))
             path_entry.insert(0, data.get("Pfad", ""))
             autosave_var.set(data.get("autosave", False))
+            notes_var.set(data.get("notes", False))
     else:
         status_label.config(text="Keine vorhandene JSON-Datei gefunden.")
 
@@ -19,7 +20,8 @@ def save_json():
         "email": email_entry.get(),
         "password": password_entry.get(),
         "Pfad": path_entry.get(),
-        "autosave": autosave_var.get()
+        "autosave": autosave_var.get(),
+        "notes": notes_var.get()
     }
     with open('config.json', 'w') as json_file:
         json.dump(data, json_file)
@@ -68,13 +70,18 @@ autosave_var = tk.BooleanVar()
 autosave_check = tk.Checkbutton(root, text="Autosave", variable=autosave_var)
 autosave_check.grid(row=3, column=1, padx=10, pady=5)
 
+# Separate Notizen Checkbox
+notes_var = tk.BooleanVar()
+notes_check = tk.Checkbutton(root, text="Anmerkung/Link", variable=notes_var)
+notes_check.grid(row=4, column=1, padx=10, pady=5)
+
 # Speichern Button
 save_button = tk.Button(root, text="Speichern", command=save_json)
-save_button.grid(row=4, column=1, pady=20)
+save_button.grid(row=5, column=1, pady=20)
 
 # Status Label
 status_label = tk.Label(root, text="")
-status_label.grid(row=5, column=0, columnspan=3)
+status_label.grid(row=6, column=0, columnspan=3)
 
 # JSON-Datei laden und Felder setzen
 load_json()
