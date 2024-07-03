@@ -16,8 +16,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from time import sleep 
+
+# Define the path to your local chromedriver
+chromedriver_path = 'chromedriver.exe'  # Update this path to where your chromedriver is located
+
 
 def read_json(file_path):
     try:
@@ -220,7 +223,7 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
         options.add_argument(f'--profile-directory={profile_dir}')
         options.add_experimental_option("detach", True)
         
-        service = Service(ChromeDriverManager().install())
+        service = Service(chromedriver_path)
         driver = webdriver.Chrome(service=service, options=options)
         
         driver.get('https://app.artesa.de/office/assignment/create')
@@ -240,7 +243,7 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
             print("Login fields not found, skipping login step.")
         
         name_field = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.NAME, 'name'))
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Vorname Nachname"]'))
         )
         name_field.send_keys(data_array[0])
         try:
@@ -271,17 +274,17 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
                 )
                 first_suggestion.click()
         telephone_field = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.NAME, 'telephone'))
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Telefon"]'))
         )
         telephone_field.send_keys(data_array[2])
 
         mobile_field = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.NAME, 'mobile'))
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="Mobil"]'))
         )
         mobile_field.send_keys(data_array[3])
 
         email_field = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.NAME, 'email'))
+            EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="E-Mail"]'))
         )
         email_field.send_keys(data_array[4])
         try:
