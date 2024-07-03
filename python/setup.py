@@ -7,7 +7,8 @@ build_exe_options = {
     "include_files": [
         "Profile 1",
         "chrome_user_data",
-        "__pycache__"
+        "__pycache__",
+        "chromedriver.exe"
     ],
     "build_exe": "build_app"
 }
