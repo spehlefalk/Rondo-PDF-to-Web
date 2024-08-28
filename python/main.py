@@ -10,6 +10,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import simpledialog
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -217,18 +218,27 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
     user_data_dir = os.path.join(current_dir, 'chrome_user_data')
     profile_dir = 'Profile 1'
 
+   
+    options = Options()
+    options.add_argument(f'user-data-dir={user_data_dir}')
+    options.add_argument(f'--profile-directory={profile_dir}')
+    options.add_experimental_option("detach", True)
     try:
-        options = Options()
-        options.add_argument(f'user-data-dir={user_data_dir}')
-        options.add_argument(f'--profile-directory={profile_dir}')
-        options.add_experimental_option("detach", True)
-        
         service = Service(chromedriver_path)
         driver = webdriver.Chrome(service=service, options=options)
-        
+    except:
+        root = tk.Tk()
+        root.withdraw()
+
+        messagebox.showerror("Error", "CHROMEDRIVER Error \n (möglicherweise falscher Treiber)")
+
+        root.destroy()
+        sys.exit()
+    try:   
         driver.get('https://app.artesa.de/office/assignment/create')
-        
         sleep(1)
+        
+
         try:
             loggin_email_field = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.NAME, "email"))
@@ -338,15 +348,15 @@ def webcontrole(data_array, auftragsNr_stg, textarea_data, email, pw):
             sleep(5)
             driver.quit()
     except:
-        # Create a root window (it will be hidden)
         root = tk.Tk()
-        root.withdraw()  # Hide the root window
+        root.withdraw()  
         
-        # Display the error message
         messagebox.showerror("Error", "Browser Error \n(mabye Close old browser applications)")
         
-        # Destroy the root window after the messagebox is closed
         root.destroy()
+        sys.exit()
+        
+
 
 root = tk.Tk()
 root.withdraw()
